@@ -224,4 +224,5 @@ module.exports = {
   resolveAPI,
   resolveServing,
   resolveDocs,
+  httpOrS
 };
