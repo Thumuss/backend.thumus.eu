@@ -1,0 +1,7 @@
+*.env
+!example.env
+db/*
+build
+app
+tools/test.js
+node_modules
