@@ -16,11 +16,11 @@ const proxy = require("express-http-proxy");
 // DB
 const db = require("better-sqlite3")("db/database.db");
 db.pragma("journal_mode = WAL");
-const { dbs, httpOrS } = require("./src/utils.js");
+const { dbs, httpOrS } = require("./utils.js");
 
 // Api
 const codes = dbs(db);
-const api = require("./src/routes/api.js")(codes);
+const api = require("./routes/api.js")(codes);
 
 // Apps
 const http_app = express();
@@ -71,7 +71,7 @@ https_app.use(
   )
 );
 
-https_app.use(vhost(`${process.env.subdomainDocs}.${process.env.host}`,express.static('docs',{extensions:['html']})));
+https_app.use(vhost(`${process.env.subdomainDocs}.${process.env.host}`,express.static("docs",{extensions:["html"]})));
 
 https_app.use(
   vhost(`*.${process.env.host}`, (req, res) => {

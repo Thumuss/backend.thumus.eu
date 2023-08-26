@@ -1,6 +1,7 @@
 *.env
 !example.env
 db/*
+!db/placeholder
 build
 app
 tools/test.js

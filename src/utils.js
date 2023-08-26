@@ -12,18 +12,18 @@ function generate_code(i = 32) {
  */
 const dbs = (db) => {
   const insertCode = db.prepare(
-    `INSERT INTO Codes (Code, Port) VALUES (@code, @port)`
+    "INSERT INTO Codes (Code, Port) VALUES (@code, @port)"
   );
-  const getPort = db.prepare(`SELECT Port FROM Codes WHERE Code=?`);
-  const deleteCode = db.prepare(`DELETE FROM Codes WHERE Code=?`);
+  const getPort = db.prepare("SELECT Port FROM Codes WHERE Code=?");
+  const deleteCode = db.prepare("DELETE FROM Codes WHERE Code=?");
 
-  const getAllCode = db.prepare(`SELECT Code FROM Codes`);
+  const getAllCode = db.prepare("SELECT Code FROM Codes");
 
   const insertToken = db.prepare(
-    `INSERT INTO Tokens (Code, Ip) VALUES (@code, @ip)`
+    "INSERT INTO Tokens (Code, Ip) VALUES (@code, @ip)"
   );
-  const getCodeToken = db.prepare(`SELECT Id FROM Tokens WHERE Code=?`);
-  const deleteToken = db.prepare(`DELETE FROM Tokens WHERE Code=?`);
+  const getCodeToken = db.prepare("SELECT Id FROM Tokens WHERE Code=?");
+  const deleteToken = db.prepare("DELETE FROM Tokens WHERE Code=?");
 
   return {
     insertCode,
@@ -216,6 +216,8 @@ function resolveDocs(path) {
   return resolveWithSubdomain(process.env.subdomainDocs, path);
 }
 
+const fs = require("fs");
+fs.writeFileSync("./a.json", JSON.stringify(status, null, 2));
 module.exports = {
   dbs,
   generate_code,

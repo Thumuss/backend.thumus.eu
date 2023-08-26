@@ -68,7 +68,7 @@ const api = (dbs) => {
     next();
   });
 
-  router.post("/create", async (req, res) => {
+  router.post("/code/create", async (req, res) => {
     if (!req.body?.port)
       return res
         .status(400)
@@ -87,18 +87,18 @@ const api = (dbs) => {
 
     await fetch(
       process.env.webhook,
-      codeCreate({ code: req.body.code, port: req.body.port, ip: req.ip })
+      embeds.codeCreate({ code: req.body.code, port: req.body.port, ip: req.ip })
     );
   });
 
-  router.post("/list", (req, res) => {
+  router.post("/code/list", (req, res) => {
     res.status(200).json({
       ...status.ListGiven,
       codes: dbs.getAllCode.all().map((a) => a.Code),
     });
   });
 
-  router.post("/delete", async (req, res) => {
+  router.post("/code/delete", async (req, res) => {
     if (!req.body?.code) {
       return res
         .status(400)
@@ -113,7 +113,7 @@ const api = (dbs) => {
 
     await fetch(
       process.env.webhook,
-      codeDelete({ code: req.body.code, port: req.body.port, ip: req.ip })
+      embeds.codeDelete({ code: req.body.code, port: req.body.port, ip: req.ip })
     );
 
     dbs.deleteCode.run(req.body.code);
