@@ -28,8 +28,8 @@ const zobj = z
   })
 
 function parseEnv() {
-  const keys = Object.keys(zobj);
-  return keys
+  const keys = Object.keys(zobj._def.schema.shape);
+return keys
     .map((a) => {
       const obj = process.env[a];
       if (!obj) {
@@ -37,7 +37,7 @@ function parseEnv() {
       }
       if (obj === "true" || obj === "false") {
         return { [a]: (obj === "true") };
-      } else if (!isNaN(parseInt(obj))) {
+      } else if (!isNaN(parseInt(obj)) && !obj.includes(".")) {
         return { [a]: parseInt(obj) };
       }
       return {[a]: obj}
@@ -46,10 +46,9 @@ function parseEnv() {
     .filter(a => typeof a !== "undefined")
     .reduce((a, b) => ({ ...a, ...b }), {});
 }
-
 const parsed = zobj.safeParse(parseEnv());
 if (!parsed.success) {
+  console.log(parsed.error)
   throw Error(parsed.error.errors.join("\n"))
 }
-
 export default parsed.data;

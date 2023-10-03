@@ -9,7 +9,7 @@ import {
   type dbs,
 } from "../utils";
 
-const tempTokens: {[ip: string]: string} = {};
+const tempTokens: { [ip: string]: string } = {};
 
 const api = (database: ReturnType<typeof dbs>) => {
   const limit = rateLimit({
@@ -40,10 +40,9 @@ const api = (database: ReturnType<typeof dbs>) => {
     if (!req.body.token)
       return res.status(400).json(status.MissingTokenVerifyException);
 
-    const index = tempTokens[req.ip] && tempTokens[req.ip] === req.body.token; 
+    const index = tempTokens[req.ip] && tempTokens[req.ip] === req.body.token;
 
-    if (!index)
-      return res.status(400).json(status.BadTokenVerifyException);
+    if (!index) return res.status(400).json(status.BadTokenVerifyException);
 
     const newToken = generate_code(256);
     database.insertToken.run({ code: newToken, ip: req.ip });
@@ -101,14 +100,16 @@ const api = (database: ReturnType<typeof dbs>) => {
       return res.status(400).json(status.MissingCodeException);
     }
 
-    const port = database.getPort.get(req.body.code);
+    const port = database.getPort.get(req.body.code) as
+      | { Port: string }
+      | undefined;
     if (!port) return res.status(400).json(status.CodeNotFoundException);
 
     await fetch(
       env.webhook,
       embeds.codeDelete({
         code: req.body.code,
-        port: req.body.port,
+        port: port.Port.split(".")[0],
         ip: req.ip,
       })
     );

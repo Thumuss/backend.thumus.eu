@@ -51,25 +51,26 @@ https_app.use(
     `*.serv.${env.host}`,
     proxy(
       (req) => {
-        if (!req.headers.host) req.headers.host = ""
+        if (!req.headers.host) req.headers.host = "";
         const code = req.headers.host.split(".serv").slice(0, -1).join(".");
-        const codeFromDb = codes.getPort.get(code) as {Port?: string} ;
-        return codeFromDb.Port // If it exists
-          ? "http://127.0.0.1:" + codeFromDb.Port // then proxy that local port
+        const codeFromDb = codes.getPort.get(code) as { Port?: string };
+        return codeFromDb?.Port // If it exists
+          ? "http://127.0.0.1:" + codeFromDb?.Port?.split(".")[0] // then proxy that local port
           : `https://${env.host}/404`; // else redirection to an error
       },
       {
+        memoizeHost: false,
         proxyReqOptDecorator: function (proxyReqOpts, srcReq) {
           //todo: create a better reqOptDeco
-          const headers = proxyReqOpts.headers || {}
-          headers["cookie"] = srcReq.headers?.["cookie"]
-            ? srcReq.headers?.["cookie"]
+          const headers = proxyReqOpts?.headers || {};
+          headers["cookie"] = srcReq?.headers?.["cookie"]
+            ? srcReq?.headers?.["cookie"]
             : "";
-          headers["origin_ip"] =
-            srcReq.headers.origin_ip || srcReq.ip;
-
-          return proxyReqOpts.headers = headers;
+          headers["origin_ip"] = srcReq?.headers?.origin_ip || srcReq?.ip;
+          proxyReqOpts.headers = headers;
+          return proxyReqOpts;
         },
+
         preserveHostHdr: true, // prevents redirection to a domain (alias google thank you so much for that fcking redirection to your website)
       }
     )
@@ -96,7 +97,7 @@ https_app.use((_, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build/index.html")); // Main page too
 });
 
-http.createServer(http_app).listen(80, env.ip); // For machine w multiple ips
+http.createServer(http_app).listen(env.portHttp, env.ip); // For machine w multiple ips
 if (httpOrS())
   https
     .createServer(
@@ -106,4 +107,4 @@ if (httpOrS())
       },
       https_app
     )
-    .listen(443, env.ip);
+    .listen(env.portHttps, env.ip);

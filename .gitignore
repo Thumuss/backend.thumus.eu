@@ -7,3 +7,4 @@ app
 tools/test.js
 node_modules
 docs/
+dist
