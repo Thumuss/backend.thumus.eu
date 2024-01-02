@@ -31,7 +31,7 @@
     "@types/express": "^4.17.17",
     "@types/express-http-proxy": "^1.6.3",
     "@types/node": "^20.5.6",
-    "@types/vhost": "^3.0.4",
+    "@types/vhost": "^3.0.9",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
     "eslint": "^8.48.0",

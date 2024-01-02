@@ -37,8 +37,8 @@ const staticOptions: Parameters<typeof express.static>[1] = {
   dotfiles: "ignore",
   extensions: ["html"],
   index: true,
-  lastModified: false
-}
+  lastModified: false,
+};
 
 // Redirect all http req to https
 if (env.redirectHttp)
@@ -47,7 +47,7 @@ if (env.redirectHttp)
   });
 
 // Setup api
-https_app.use(vhost(`api.${env.host}`, api));
+https_app.use(vhost(`api.${env.host}`, api as unknown as vhost.Handler));
 
 /*
 Hardcode code
@@ -70,9 +70,7 @@ https_app.use(
         proxyReqOptDecorator: function (proxyReqOpts, srcReq) {
           //todo: create a better reqOptDeco
           const headers = proxyReqOpts?.headers || {};
-          headers["cookie"] = srcReq?.headers?.["cookie"]
-            ? srcReq?.headers?.["cookie"]
-            : "";
+          headers["cookie"] = srcReq?.headers?.["cookie"] ? srcReq?.headers?.["cookie"] : "";
           headers["origin_ip"] = srcReq?.headers?.origin_ip || srcReq?.ip;
           proxyReqOpts.headers = headers;
           return proxyReqOpts;
@@ -80,16 +78,11 @@ https_app.use(
 
         preserveHostHdr: true, // prevents redirection to a domain (alias google thank you so much for that fcking redirection to your website)
       }
-    )
+    ) as unknown as vhost.Handler
   )
 );
 
-https_app.use(
-  vhost(
-    `${env.subdomainDocs}.${env.host}`,
-    express.static("docs", { extensions: ["html"] })
-  )
-);
+https_app.use(vhost(`${env.subdomainDocs}.${env.host}`, express.static("docs", { extensions: ["html"] }) as unknown as vhost.Handler));
 /*
 https_app.use(
   vhost(`*.${env.host}`, (req, res) => {
@@ -98,22 +91,19 @@ https_app.use(
   })
 );*/
 
-
-
-
 const router = express.Router();
 
 router.use(function (req, res, next) {
-  const name = (req as unknown as {vhost: string[]}).vhost[0];
-  if(!name) next();
+  const name = (req as unknown as { vhost: string[] }).vhost[0];
+  if (!name) next();
   req.originalUrl = req.url;
   req.url = `/static/${name}/${req.url}`;
   next();
-}) 
+});
 
 router.use(express.static("../frontend/extern", staticOptions));
 
-https_app.use(vhost(`*.${env.host}`, router));
+https_app.use(vhost(`*.${env.host}`, router as unknown as vhost.Handler));
 
 https_app.use(express.static("../frontend/build", staticOptions)); // Main page
 

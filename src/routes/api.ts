@@ -1,13 +1,7 @@
 import env from "../utils/env";
 import rateLimit from "express-rate-limit";
 import express from "express";
-import {
-  generate_code,
-  embeds,
-  status,
-  resolveServing,
-  type dbs,
-} from "../utils";
+import { generate_code, embeds, status, resolveServing, type dbs } from "../utils";
 
 const tempTokens: { [ip: string]: string } = {};
 
@@ -25,11 +19,13 @@ const api = (database: ReturnType<typeof dbs>) => {
   router.use(express.json());
 
   router.post("/token/create", async (req, res) => {
+    if (!req.ip) return;
     const newToken = generate_code(256);
     await fetch(env.webhook, embeds.tokenCreate({ newToken, ip: req.ip }));
     tempTokens[req.ip] = newToken;
 
     setTimeout(() => {
+      if (!req.ip) return;
       delete tempTokens[req.ip];
     }, 1000 * 60 * 15);
 
@@ -37,9 +33,8 @@ const api = (database: ReturnType<typeof dbs>) => {
   });
 
   router.post("/token/verify", async (req, res) => {
-    if (!req.body.token)
-      return res.status(400).json(status.MissingTokenVerifyException);
-
+    if (!req.body.token) return res.status(400).json(status.MissingTokenVerifyException);
+    if (!req.ip) return;
     const index = tempTokens[req.ip] && tempTokens[req.ip] === req.body.token;
 
     if (!index) return res.status(400).json(status.BadTokenVerifyException);
@@ -62,11 +57,9 @@ const api = (database: ReturnType<typeof dbs>) => {
   });
 
   router.post("/code/create", async (req, res) => {
-    if (!req.body?.port)
-      return res.status(400).json(status.MissingPortException);
+    if (!req.body?.port) return res.status(400).json(status.MissingPortException);
 
-    if (!req.body?.code || req.body?.code === "random")
-      req.body.code = generate_code();
+    if (!req.body?.code || req.body?.code === "random") req.body.code = generate_code();
 
     database.insertCode.run({ code: req.body.code, port: req.body.port });
 
@@ -81,7 +74,7 @@ const api = (database: ReturnType<typeof dbs>) => {
       embeds.codeCreate({
         code: req.body.code,
         port: req.body.port,
-        ip: req.ip,
+        ip: req.ip || "none",
       })
     );
   });
@@ -89,9 +82,7 @@ const api = (database: ReturnType<typeof dbs>) => {
   router.post("/code/list", (req, res) => {
     res.status(200).json({
       ...status.ListGiven,
-      codes: database.getAllCode
-        .all()
-        .map((a) => (a as { Code: unknown }).Code),
+      codes: database.getAllCode.all().map((a) => (a as { Code: unknown }).Code),
     });
   });
 
@@ -100,9 +91,7 @@ const api = (database: ReturnType<typeof dbs>) => {
       return res.status(400).json(status.MissingCodeException);
     }
 
-    const port = database.getPort.get(req.body.code) as
-      | { Port: string }
-      | undefined;
+    const port = database.getPort.get(req.body.code) as { Port: string } | undefined;
     if (!port) return res.status(400).json(status.CodeNotFoundException);
 
     await fetch(
@@ -110,7 +99,7 @@ const api = (database: ReturnType<typeof dbs>) => {
       embeds.codeDelete({
         code: req.body.code,
         port: port.Port.split(".")[0],
-        ip: req.ip,
+        ip: req.ip || "none",
       })
     );
 
