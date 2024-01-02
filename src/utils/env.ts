@@ -17,6 +17,7 @@ const zobj = z
     http: z.boolean().default(true),
     portHttp: port.optional().default(80),
     portHttps: port.optional().default(443),
+    redirectHttp: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.https && (!data.cert || !data.key))
@@ -25,30 +26,29 @@ const zobj = z
         message:
           "If you use https, you need to set cert and key, two path to your cert.pem and key.pem ",
       });
-  })
+  });
 
 function parseEnv() {
   const keys = Object.keys(zobj._def.schema.shape);
-return keys
+  return keys
     .map((a) => {
       const obj = process.env[a];
       if (!obj) {
         return undefined;
       }
       if (obj === "true" || obj === "false") {
-        return { [a]: (obj === "true") };
+        return { [a]: obj === "true" };
       } else if (!isNaN(parseInt(obj)) && !obj.includes(".")) {
         return { [a]: parseInt(obj) };
       }
-      return {[a]: obj}
-      
+      return { [a]: obj };
     })
-    .filter(a => typeof a !== "undefined")
+    .filter((a) => typeof a !== "undefined")
     .reduce((a, b) => ({ ...a, ...b }), {});
 }
 const parsed = zobj.safeParse(parseEnv());
 if (!parsed.success) {
-  console.log(parsed.error)
-  throw Error(parsed.error.errors.join("\n"))
+  console.log(parsed.error);
+  throw Error(parsed.error.errors.join("\n"));
 }
 export default parsed.data;

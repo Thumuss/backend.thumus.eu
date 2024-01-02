@@ -1,4 +1,4 @@
-const db = require("better-sqlite3")("./db/database.db");
+const db = require("better-sqlite3")("./dist/db/database.db");
 db.pragma("journal_mode = WAL");
 
 const queries = [

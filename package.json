@@ -2,9 +2,12 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "tsc && nodemon -e .env,js ./dist/index.js",
+    "build:docker": "pnpm run build:base && cp .docker.env dist/.env",
+    "build:base": "tsc && mkdir -p dist/db && ([ -f \"./dist/db/database.db\" ] || pnpm run create:db) ",
+    "start": "nodemon -e .env,js ./dist/index.js",
+    "create:db": "node tools/initiate_db.js",
     "lint:fix": "eslint src/**/*.ts src/*.ts --fix "
   },
   "dependencies": {
@@ -15,6 +18,7 @@
     "express": "^4.18.2",
     "express-http-proxy": "^1.6.3",
     "express-rate-limit": "^6.9.0",
+    "helmet": "^7.0.0",
     "vhost": "^3.0.2",
     "zod": "^3.22.2"
   },

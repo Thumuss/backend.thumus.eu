@@ -1,5 +1,4 @@
 // Dependencies in node
-import path from "path";
 import http from "http";
 import https from "https";
 import fs from "fs";
@@ -16,7 +15,8 @@ import proxy from "express-http-proxy";
 // DB
 
 import bsql3 from "better-sqlite3";
-const db = bsql3("db/database.db");
+const db = bsql3("./dist/db/database.db");
+
 db.pragma("journal_mode = WAL");
 import { dbs, httpOrS } from "./utils";
 
@@ -33,8 +33,15 @@ const https_app = httpOrS() ? express() : http_app;
 https_app.set("view engine", "ejs");
 https_app.use(cors());
 
+const staticOptions: Parameters<typeof express.static>[1] = {
+  dotfiles: "ignore",
+  extensions: ["html"],
+  index: true,
+  lastModified: false
+}
+
 // Redirect all http req to https
-if (httpOrS())
+if (env.redirectHttp)
   http_app.get("*", (req, res) => {
     res.redirect("https://" + req.headers.host + req.url);
   });
@@ -83,19 +90,32 @@ https_app.use(
     express.static("docs", { extensions: ["html"] })
   )
 );
-
+/*
 https_app.use(
   vhost(`*.${env.host}`, (req, res) => {
     // If we don't recognise the subdomain
     res.redirect(`https://${env.host}` + req.url); // redirect to the main page
   })
-);
+);*/
 
-https_app.use(express.static("../frontend/build")); // Main page
 
-https_app.use((_, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/build/index.html")); // Main page too
-});
+
+
+const router = express.Router();
+
+router.use(function (req, res, next) {
+  const name = (req as unknown as {vhost: string[]}).vhost[0];
+  if(!name) next();
+  req.originalUrl = req.url;
+  req.url = `/static/${name}/${req.url}`;
+  next();
+}) 
+
+router.use(express.static("../frontend/extern", staticOptions));
+
+https_app.use(vhost(`*.${env.host}`, router));
+
+https_app.use(express.static("../frontend/build", staticOptions)); // Main page
 
 http.createServer(http_app).listen(env.portHttp, env.ip); // For machine w multiple ips
 if (httpOrS())
