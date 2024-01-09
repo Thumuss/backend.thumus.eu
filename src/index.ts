@@ -15,7 +15,7 @@ import proxy from "express-http-proxy";
 // DB
 
 import bsql3 from "better-sqlite3";
-const db = bsql3("./dist/db/database.db");
+const db = bsql3("./db/database.db");
 
 db.pragma("journal_mode = WAL");
 import { dbs, httpOrS } from "./utils";
@@ -23,6 +23,7 @@ import { dbs, httpOrS } from "./utils";
 // Api
 const codes = dbs(db);
 import apiWrapper from "./routes/api.js";
+import path from "path";
 const api = apiWrapper(codes);
 
 // Apps
@@ -36,7 +37,7 @@ https_app.use(cors());
 const staticOptions: Parameters<typeof express.static>[1] = {
   dotfiles: "ignore",
   extensions: ["html"],
-  index: true,
+  index: "index.html",
   lastModified: false,
 };
 
@@ -95,7 +96,7 @@ const router = express.Router();
 
 router.use(function (req, res, next) {
   const name = (req as unknown as { vhost: string[] }).vhost[0];
-  if (!name) next();
+  if (!name) return next();
   req.originalUrl = req.url;
   req.url = `/static/${name}/${req.url}`;
   next();
@@ -106,6 +107,10 @@ router.use(express.static("../frontend/extern", staticOptions));
 https_app.use(vhost(`*.${env.host}`, router as unknown as vhost.Handler));
 
 https_app.use(express.static("../frontend/build", staticOptions)); // Main page
+
+https_app.use((_, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/build/index.html")); // Main page too
+});
 
 http.createServer(http_app).listen(env.portHttp, env.ip); // For machine w multiple ips
 if (httpOrS())

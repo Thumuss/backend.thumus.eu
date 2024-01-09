@@ -13,6 +13,7 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesourc
 RUN apt-get update && apt-get install nodejs -y
 
 RUN npm i -g pnpm nodemon
+RUN pnpm i
 
 RUN mkdir /data/ && openssl req -newkey rsa:2048 -new -nodes -x509 -days 7 -keyout /data/key.pem -out /data/cert.pem -subj "/C=FR/ST=Paris/O=Test/OU=Test2/CN=localhost"
 

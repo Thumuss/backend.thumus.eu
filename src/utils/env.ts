@@ -1,8 +1,12 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import z from "zod";
 
 const port = z.number().int().nonnegative().lte(65535);
+let path = process.cwd() + ".env";
+if (process.env?.) {
 
+}
+config({ path })
 const zobj = z
   .object({
     cert: z.string().min(1).optional(),
