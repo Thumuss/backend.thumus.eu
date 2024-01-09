@@ -109,7 +109,7 @@ https_app.use(vhost(`*.${env.host}`, router as unknown as vhost.Handler));
 https_app.use(express.static("./build/frontend", staticOptions)); // Main page
 
 https_app.use((_, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/build/index.html")); // Main page too
+  res.sendFile(path.join(__dirname, "./build/frontend/index.html")); // Main page too
 });
 
 http.createServer(http_app).listen(env.portHttp, env.ip); // For machine w multiple ips
