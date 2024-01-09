@@ -51,7 +51,6 @@ if (env.redirectHttp)
 https_app.use(vhost(`api.${env.host}`, api as unknown as vhost.Handler));
 
 /*
-Hardcode code
 Redirection to the subdomain link to the port
 */
 https_app.use(
@@ -83,7 +82,8 @@ https_app.use(
   )
 );
 
-https_app.use(vhost(`${env.subdomainDocs}.${env.host}`, express.static("docs", { extensions: ["html"] }) as unknown as vhost.Handler));
+https_app.use(vhost(`${env.subdomainDocs}.${env.host}`, express.static("./build/docs", { extensions: ["html"] }) as unknown as vhost.Handler));
+
 /*
 https_app.use(
   vhost(`*.${env.host}`, (req, res) => {
@@ -102,11 +102,11 @@ router.use(function (req, res, next) {
   next();
 });
 
-router.use(express.static("../frontend/extern", staticOptions));
+router.use("/static/", express.static("./build", staticOptions));
 
 https_app.use(vhost(`*.${env.host}`, router as unknown as vhost.Handler));
 
-https_app.use(express.static("../frontend/build", staticOptions)); // Main page
+https_app.use(express.static("./build/frontend", staticOptions)); // Main page
 
 https_app.use((_, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build/index.html")); // Main page too
