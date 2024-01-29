@@ -123,3 +123,7 @@ if (httpOrS())
       https_app
     )
     .listen(env.portHttps, env.ip);
+
+const textHttp = env.http ? `${env.ip}:${env.portHttp}` : "";
+const textHttps = env.https ?`${env.ip}:${env.portHttps}${env.http && env.https ? " and " : ""}` : "";
+console.log(`* Starting server on ${textHttps}${textHttp}`);
