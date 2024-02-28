@@ -1,5 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
+import * as url from "url";
+const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
 const db = new Database(join(__dirname, "../../db/db.sqlite"));
 
 db.run(
