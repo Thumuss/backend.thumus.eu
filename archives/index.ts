@@ -3,9 +3,6 @@ import http from "http";
 import https from "https";
 import fs from "fs";
 
-import * as url from "url";
-const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
-
 // Setup env
 import env from "./utils/env";
 
@@ -52,22 +49,6 @@ if (env.redirectHttp)
 
 // Setup api
 https_app.use(vhost(`api.${env.host}`, api as unknown as vhost.Handler));
-
-const pathBuild = path.join(__dirname, "./build/");
-const dirs = fs.readdirSync(pathBuild);
-for (const dir of dirs) {
-  if (!fs.statSync(dir).isDirectory()) {
-    const link = fs.readFileSync(path.join(pathBuild, `./${dir}`));
-    https_app.use(
-      vhost(
-        `${dir}.${env.host}`,
-        proxy(`http://127.0.0.1:${link}`, {
-          preserveHostHdr: true,
-        }) as unknown as vhost.Handler
-      )
-    );
-  }
-}
 
 /*
 Redirection to the subdomain link to the port
@@ -127,7 +108,7 @@ https_app.use(vhost(`*.${env.host}`, router as unknown as vhost.Handler));
 
 https_app.use(express.static("./build/frontend", staticOptions)); // Main page
 
-https_app.get("/", (_, res) => {
+https_app.use((_, res) => {
   res.sendFile(path.join(__dirname, "./build/frontend/index.html")); // Main page too
 });
 
@@ -144,5 +125,5 @@ if (httpOrS())
     .listen(env.portHttps, env.ip);
 
 const textHttp = env.http ? `${env.ip}:${env.portHttp}` : "";
-const textHttps = env.https ? `${env.ip}:${env.portHttps}${env.http && env.https ? " and " : ""}` : "";
+const textHttps = env.https ?`${env.ip}:${env.portHttps}${env.http && env.https ? " and " : ""}` : "";
 console.log(`* Starting server on ${textHttps}${textHttp}`);
