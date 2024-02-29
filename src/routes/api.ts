@@ -1,7 +1,7 @@
-import env from "../utils/env";
+import env from "../utils/env.js";
 import rateLimit from "express-rate-limit";
 import express from "express";
-import { generate_code, embeds, status, resolveServing, type dbs } from "../utils";
+import { generate_code, embeds, status, resolveServing, type dbs } from "../utils.js";
 
 const tempTokens: { [ip: string]: string } = {};
 
@@ -82,7 +82,7 @@ const api = (database: ReturnType<typeof dbs>) => {
   router.post("/code/list", (req, res) => {
     res.status(200).json({
       ...status.ListGiven,
-      codes: database.getAllCode.all().map((a) => (a as { Code: unknown }).Code),
+      codes: database.getAllCode.all().map((a: unknown) => (a as { Code: unknown }).Code),
     });
   });
 

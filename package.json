@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:docker": "bun run build:base && cp .docker.env dist/.env",
-    "build:base": "tsc && mkdir -p dist/db && ([ -f \"./dist/db/database.db\" ] || bun run create:db) ",
-    "build:dev": "mkdir -p dist/db && ([ -f \"./dist/db/database.db\" ] || bun run create:db) && tsc -w",
+    "build:docker": "pnpm run build:base && cp .docker.env dist/.env",
+    "build:base": "tsc && mkdir -p dist/db && ([ -f \"./dist/db/database.db\" ] || pnpm run create:db) ",
+    "build:dev": "mkdir -p dist/db && ([ -f \"./dist/db/database.db\" ] || pnpm run create:db) && tsc -w",
     "start": "nodemon -e .env,js ./dist/index.js",
-    "create:db": "node tools/initiate_db.js",
+    "create:db": "node tools/initiate_db.cjs",
     "lint:fix": "eslint src/**/*.ts src/*.ts --fix "
   },
   "dependencies": {

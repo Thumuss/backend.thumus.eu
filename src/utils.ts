@@ -1,4 +1,4 @@
-import env from "./utils/env";
+import env from "./utils/env.js";
 import type { Database } from "better-sqlite3";
 function generate_code(i = 32) {
   const alp = "abcdefghijklmopqrstuvwxyz0123456789";

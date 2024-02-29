@@ -7,7 +7,7 @@ import * as url from "url";
 const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
 
 // Setup env
-import env from "./utils/env";
+import env from "./utils/env.js";
 
 // Express dependencies
 import express from "express";
@@ -21,7 +21,7 @@ import bsql3 from "better-sqlite3";
 const db = bsql3("./db/database.db");
 
 db.pragma("journal_mode = WAL");
-import { dbs, httpOrS } from "./utils";
+import { dbs, httpOrS } from "./utils.js";
 
 // Api
 const codes = dbs(db);
@@ -56,7 +56,7 @@ https_app.use(vhost(`api.${env.host}`, api as unknown as vhost.Handler));
 const pathBuild = path.join(__dirname, "./build/");
 const dirs = fs.readdirSync(pathBuild);
 for (const dir of dirs) {
-  if (!fs.statSync(dir).isDirectory()) {
+  if (!fs.statSync(path.join(pathBuild, `./${dir}`)).isDirectory()) {
     const link = fs.readFileSync(path.join(pathBuild, `./${dir}`));
     https_app.use(
       vhost(
