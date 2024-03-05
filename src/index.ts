@@ -164,6 +164,7 @@ router2.use(
       const link = tryRead(pathBuild)
       const ht = link.https ? "https" : "http";
       const ifIp = `${ht}://${link.hostname ? link.hostname : link.ip || "127.0.0.1"}${link.port ? ":" + link.port : ""}`;
+      console.log(ifIp);
       (req as any).nextHost = link.url ? link.url : ifIp;
       req.url = req.originalUrl;
       next();
