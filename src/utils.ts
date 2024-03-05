@@ -1,5 +1,9 @@
+import path from "path";
 import env from "./utils/env.js";
 import type { Database } from "better-sqlite3";
+import * as url from "url";
+const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
+
 function generate_code(i = 32) {
   const alp = "abcdefghijklmopqrstuvwxyz0123456789";
   return new Array(i)
@@ -9,18 +13,14 @@ function generate_code(i = 32) {
 }
 
 const dbs = (db: Database) => {
-  const insertCode = db.prepare<{ code: string; port: string }>(
-    "INSERT INTO Codes (Code, Port) VALUES (@code, @port)"
-  );
+  const insertCode = db.prepare<{ code: string; port: string }>("INSERT INTO Codes (Code, Port) VALUES (@code, @port)");
 
   const getPort = db.prepare<string>("SELECT Port FROM Codes WHERE Code=?");
   const deleteCode = db.prepare<string>("DELETE FROM Codes WHERE Code=?");
 
   const getAllCode = db.prepare("SELECT Code FROM Codes");
 
-  const insertToken = db.prepare<{ code: string; ip: string }>(
-    "INSERT INTO Tokens (Code, Ip) VALUES (@code, @ip)"
-  );
+  const insertToken = db.prepare<{ code: string; ip: string }>("INSERT INTO Tokens (Code, Ip) VALUES (@code, @ip)");
   const getCodeToken = db.prepare<string>("SELECT Id FROM Tokens WHERE Code=?");
   const deleteToken = db.prepare<string>("DELETE FROM Tokens WHERE Code=?");
 
@@ -54,41 +54,25 @@ const Colors = {
 };
 
 const embeds = {
-  tokenCreate: ({ newToken, ip }: { newToken: string, ip: string }) =>
+  tokenCreate: ({ newToken, ip }: { newToken: string; ip: string }) =>
     baseOptions({
       title: "New verification token as been created",
       color: Colors.YELLOW,
       description: `\`${newToken}\` by \`${ip}\``,
     }),
-  tokenVerify: ({ newToken, ip }: { newToken: string, ip: string }) =>
+  tokenVerify: ({ newToken, ip }: { newToken: string; ip: string }) =>
     baseOptions({
       title: "New token as been added",
       color: Colors.GREEN,
       description: `\`${newToken}\` by \`${ip}\``,
     }),
-  codeCreate: ({
-    code,
-    port,
-    ip,
-  }: {
-    code: string;
-    port: string;
-    ip: string;
-  }) =>
+  codeCreate: ({ code, port, ip }: { code: string; port: string; ip: string }) =>
     baseOptions({
       title: "New code as been added",
       color: Colors.GREEN,
       description: `\`${code}\` at port \`${port}\` by \`${ip}\``,
     }),
-  codeDelete: ({
-    code,
-    port,
-    ip,
-  }: {
-    code: string;
-    port: string;
-    ip: string;
-  }) =>
+  codeDelete: ({ code, port, ip }: { code: string; port: string; ip: string }) =>
     baseOptions({
       title: "New code as been added",
       color: Colors.RED,
@@ -208,38 +192,44 @@ const status = {
   } as const),
 };
 
-function httpOrS() {
+/**
+ * Give a boolean base on the https supports
+ */
+function httpOrS(): boolean {
   return env.https;
 }
 
-function goodPortOrNot() {
+/**
+ * "Are the ports classic?"
+ */
+function basicPorts(): boolean {
   if (httpOrS()) {
     return env.portHttps === 443;
   }
   return env.portHttp === 80;
 }
 
-function resolveWithSubdomain(sub: string, path = "") {
+/**
+ * Form a url
+ */
+function resolveWithSubdomain(sub: string | null = null, path = ""): string {
   const type = httpOrS() ? "https" : "http";
-  return `${type}://${sub}.${env.host}${
-    goodPortOrNot() ? "" : `:${httpOrS() ? env.portHttps : env.portHttp}`
-  }${path}`;
+  return `${type}://${sub ? sub + "." : ""}${env.host}${basicPorts() ? "" : `:${httpOrS() ? env.portHttps : env.portHttp}`}${path}`;
 }
 
-const resolveServing = (code: string) =>
-  resolveWithSubdomain(`${code}.${env.subdomainServ}`);
+const resolveServing = (code: string) => resolveWithSubdomain(`${code}.${env.subdomainServ}`);
 const resolveAPI = () => resolveWithSubdomain(env.subdomainAPI);
+
 function resolveDocs(path: string) {
   return resolveWithSubdomain(env.subdomainDocs, path);
 }
 
-export {
-  dbs,
-  generate_code,
-  embeds,
-  status,
-  resolveAPI,
-  resolveServing,
-  resolveDocs,
-  httpOrS,
-};
+function pathResolve(s = ".") {
+  return path.resolve(__dirname, s);
+}
+
+function pathResolveBuild(s = ".") {
+  return path.resolve(pathResolve("./build"), s);
+}
+
+export { dbs, pathResolve, pathResolveBuild, generate_code, embeds, status, resolveWithSubdomain, resolveAPI, resolveServing, resolveDocs, httpOrS };
