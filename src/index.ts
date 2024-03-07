@@ -1,11 +1,7 @@
 // Dependencies in node
 import http from "http";
-import https from "https";
-import { RequestOptions } from "https";
+import https, { RequestOptions } from "https";
 import fs from "fs";
-
-// File supports
-import { parse as parseYAML } from "yaml";
 
 // Setup env
 import env from "./utils/env.js";
@@ -23,12 +19,12 @@ import bsql3 from "better-sqlite3";
 const db = bsql3("./db/database.db");
 
 db.pragma("journal_mode = WAL");
-import { dbs, httpOrS, pathResolveBuild, resolveWithSubdomain } from "./utils.js";
+import { dbs, httpOrS, pathResolveBuild, resolveWithSubdomain, tryRead } from "./utils.js";
 
 // Api
 const codes = dbs(db);
 import apiWrapper from "./routes/api.js";
-import path from "path";
+import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
 const api = apiWrapper(codes);
 
 // Apps
@@ -60,38 +56,27 @@ if (env.redirectHttp)
 // Setup api
 https_app.use(vhost(`api.${env.host}`, api as unknown as vhost.Handler));
 
-interface Proxy {
-  ip?: string;
-  port?: number;
-  https: boolean;
-  hostname?: string;
-  url?: string;
-}
 
 const optionProxy: ProxyOptions = {
   memoizeHost: false,
   proxyReqOptDecorator: function (proxyReqOpts: RequestOptions, srcReq: Request) {
-    //todo: create a better reqOptDeco
     const headers = proxyReqOpts?.headers || {};
-    //headers["cookie"] = srcReq?.headers?.["cookie"] ? srcReq?.headers?.["cookie"] : "";
     headers["origin_ip"] = srcReq?.headers?.origin_ip || srcReq?.ip;
-    //srcReq.cookies
     proxyReqOpts.headers = headers;
     const url: string | undefined = (srcReq as any).nextHost;
-    console.log(url);
     if (url) {
       const urlObj = new URL(url.match(/^http/g) ? url : "http://" + url);
       proxyReqOpts.hostname = urlObj.hostname;
       proxyReqOpts.host = urlObj.host;
       proxyReqOpts.headers.host = urlObj.host;
-      console.log(proxyReqOpts);
     }
     return proxyReqOpts;
   },
   userResDecorator: function (resP, resPD, resE, resED) {
-    console.log(resP, resE, resED);
     return resPD;
   },
+
+  proxyReqPathResolver: (req) => req.originalUrl,
   preserveHostHdr: true,
 };
 
@@ -112,7 +97,12 @@ https_app.use(
   )
 );
 
-https_app.use(vhost(`${env.subdomainDocs}.${env.host}`, express.static("./build/docs", { extensions: ["html"] }) as unknown as vhost.Handler));
+https_app.use(
+  vhost(
+    `${env.subdomainDocs}.${env.host}`,
+    express.static("./build/docs", { extensions: ["html"] }) as unknown as vhost.Handler
+  )
+);
 
 /*
 https_app.use(
@@ -145,37 +135,34 @@ https_app.use(express.static(pathResolveBuild("./frontend"), staticOptions)); //
 
 const router2 = express();
 
-function tryRead(pathBuild: string): Proxy {
-  const list = { yaml: parseYAML, yml: parseYAML, json: JSON.parse } as const;
-  const keys = Object.keys(list) as (keyof typeof list)[];
-  const exists = keys.filter((a) => fs.existsSync(`${pathBuild}.${a}`));
-  if (exists.length === 0) return JSON.parse(fs.readFileSync(pathBuild).toString()) as Proxy;
-  const type = exists.shift();
-  if (!type) throw new Error();
-  const ext = `.${type}`;
-  return (list[type] as Function)(fs.readFileSync(pathBuild + ext).toString()) as Proxy;
-}
+const prox = createProxyMiddleware({
+  router: (req) => (req as any).nextHost,
+  changeOrigin: true,
+  autoRewrite: true,
+  followRedirects: true,
+  cookieDomainRewrite: "*" + "." + env.host,
+  secure: false,
+  toProxy: true,
+  //...(path ? {pathRewrite: { [path]: "" }} : {}),
+});
 
-router2.use(
-  (req, res, next) => {
-    const name = (req as unknown as { vhost: string[] }).vhost[0];
-    const pathBuild = pathResolveBuild(name);
-    try {
-      const link = tryRead(pathBuild)
-      const ht = link.https ? "https" : "http";
-      const ifIp = `${ht}://${link.hostname ? link.hostname : link.ip || "127.0.0.1"}${link.port ? ":" + link.port : ""}`;
-      console.log(ifIp);
-      (req as any).nextHost = link.url ? link.url : ifIp;
-      req.url = req.originalUrl;
-      next();
-    } catch {
-      res.json({ status: 404, redirect: resolveWithSubdomain() });
-    }
-  },
-  proxy((req) => {
-    return (req as any).nextHost;
-  }, optionProxy)
-);
+router2.use((req, res, next) => {
+  const name = (req as unknown as { vhost: string[] }).vhost[0];
+  const pathBuild = pathResolveBuild(name);
+  try {
+    const link = tryRead(pathBuild);
+    const ht = link.https ? "https" : "http";
+    const ifIp = `${ht}://${link.hostname ? link.hostname : link.ip || "127.0.0.1"}${
+      link.port ? ":" + link.port : ""
+    }`;
+    (req as any).nextHost = link.url ? link.url : ifIp;
+    req.url = req.originalUrl;
+    (req as any).nameBase = name;
+    next();
+  } catch {
+    res.json({ status: 404, redirect: resolveWithSubdomain() });
+  }
+}, prox);
 
 https_app.use(vhost(`*.${env.host}`, router2));
 http.createServer(http_app).listen(env.portHttp, env.ip); // For machine w multiple ips
@@ -191,5 +178,7 @@ if (httpOrS())
     .listen(env.portHttps, env.ip);
 
 const textHttp = env.http ? `${env.ip || "localhost"}:${env.portHttp}` : "";
-const textHttps = env.https ? `${env.ip}:${env.portHttps}${env.http && env.https ? " and " : ""}` : "";
+const textHttps = env.https
+  ? `${env.ip}:${env.portHttps}${env.http && env.https ? " and " : ""}`
+  : "";
 console.log(`* Starting server on ${textHttps}${textHttp}`);

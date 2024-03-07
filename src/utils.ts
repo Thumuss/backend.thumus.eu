@@ -3,6 +3,8 @@ import env from "./utils/env.js";
 import type { Database } from "better-sqlite3";
 import * as url from "url";
 const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
+import fs from "fs";
+import { parse as parseYAML } from "yaml";
 
 function generate_code(i = 32) {
   const alp = "abcdefghijklmopqrstuvwxyz0123456789";
@@ -13,14 +15,18 @@ function generate_code(i = 32) {
 }
 
 const dbs = (db: Database) => {
-  const insertCode = db.prepare<{ code: string; port: string }>("INSERT INTO Codes (Code, Port) VALUES (@code, @port)");
+  const insertCode = db.prepare<{ code: string; port: string }>(
+    "INSERT INTO Codes (Code, Port) VALUES (@code, @port)"
+  );
 
   const getPort = db.prepare<string>("SELECT Port FROM Codes WHERE Code=?");
   const deleteCode = db.prepare<string>("DELETE FROM Codes WHERE Code=?");
 
   const getAllCode = db.prepare("SELECT Code FROM Codes");
 
-  const insertToken = db.prepare<{ code: string; ip: string }>("INSERT INTO Tokens (Code, Ip) VALUES (@code, @ip)");
+  const insertToken = db.prepare<{ code: string; ip: string }>(
+    "INSERT INTO Tokens (Code, Ip) VALUES (@code, @ip)"
+  );
   const getCodeToken = db.prepare<string>("SELECT Id FROM Tokens WHERE Code=?");
   const deleteToken = db.prepare<string>("DELETE FROM Tokens WHERE Code=?");
 
@@ -214,7 +220,9 @@ function basicPorts(): boolean {
  */
 function resolveWithSubdomain(sub: string | null = null, path = ""): string {
   const type = httpOrS() ? "https" : "http";
-  return `${type}://${sub ? sub + "." : ""}${env.host}${basicPorts() ? "" : `:${httpOrS() ? env.portHttps : env.portHttp}`}${path}`;
+  return `${type}://${sub ? sub + "." : ""}${env.host}${
+    basicPorts() ? "" : `:${httpOrS() ? env.portHttps : env.portHttp}`
+  }${path}`;
 }
 
 const resolveServing = (code: string) => resolveWithSubdomain(`${code}.${env.subdomainServ}`);
@@ -232,4 +240,36 @@ function pathResolveBuild(s = ".") {
   return path.resolve(pathResolve("./build"), s);
 }
 
-export { dbs, pathResolve, pathResolveBuild, generate_code, embeds, status, resolveWithSubdomain, resolveAPI, resolveServing, resolveDocs, httpOrS };
+interface Proxy {
+  ip?: string;
+  port?: number;
+  https: boolean;
+  hostname?: string;
+  url?: string;
+}
+
+function tryRead(pathBuild: string): Proxy {
+  const list = { yaml: parseYAML, yml: parseYAML, json: JSON.parse } as const;
+  const keys = Object.keys(list) as (keyof typeof list)[];
+  const exists = keys.filter((a) => fs.existsSync(`${pathBuild}.${a}`));
+  if (exists.length === 0) return JSON.parse(fs.readFileSync(pathBuild).toString()) as Proxy;
+  const type = exists.shift();
+  if (!type) throw new Error();
+  const ext = `.${type}`;
+  return (list[type] as Function)(fs.readFileSync(pathBuild + ext).toString()) as Proxy;
+}
+
+export {
+  dbs,
+  tryRead,
+  pathResolve,
+  pathResolveBuild,
+  generate_code,
+  embeds,
+  status,
+  resolveWithSubdomain,
+  resolveAPI,
+  resolveServing,
+  resolveDocs,
+  httpOrS,
+};
